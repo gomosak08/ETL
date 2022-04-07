@@ -1,9 +1,12 @@
 const CSVToJSON = require("csvtojson");
 const JSONToCSV = require("json2csv").parse; 
-const FileSysten = require("fs");
+const FileSystem = require("fs");
 const { fileURLToPath } = require("url");
 const convert = require('xml-js');
-const XLSX = require("xlsx");
+const xml = require('xml');
+
+const ExcelJS = require('exceljs');
+
 
 function mod_file(dict){
     for( const data in dict){
@@ -18,9 +21,23 @@ function mod_file(dict){
     }
 }
 
+function breaking_dict(dict){
+    parse_js = [];
+    for (const col in dict){
+        parse_js.push({[col]:dict[col]});
+    }
+    return parse_js;
+}
+
+async function read_xlsx(filename){
+    workbook = new ExcelJS.Workbook();
+    const result = await workbook.xlsx.readFile(filename);
+    return result;
+}
 
 
-CSVToJSON().fromFile("./dataset.xlsx").then(source => {
+
+CSVToJSON().fromFile("./source.csv").then(source => {
     console.log('Source file: \n',source);
     source.forEach(line => {
         mod_file(line);
@@ -29,8 +46,50 @@ CSVToJSON().fromFile("./dataset.xlsx").then(source => {
 
     const csv = JSONToCSV(source);
     console.log(csv);
-    FileSysten.writeFileSync("./destination.csv",csv);
+    FileSystem.writeFileSync("./destination.csv",csv);
 
 });
 
-console.log(parseInt('hola'));
+
+
+
+const book = read_xlsx('movies.xlsx');
+const resu =  book.then(function(res){
+    let names = [];
+    let data = [];
+    const rows = res._worksheets[1]._rows;
+    rows[0]._cells.forEach(cell => {
+        names.push(cell._value.model.value);
+    });
+    rows.slice(1,rows.lenght).forEach(row => {
+        let r = {};
+        for (const ind of names.keys()){
+            r[names[ind]] = row._cells[ind]._value.model.value;
+            
+        }
+        data.push(r);
+    });
+    return data;
+});
+
+
+var x = resu.then(function(val){
+
+    val.forEach(row => {
+        mod_file(row);
+    });
+    parsed = [];
+    val.forEach(row => {
+        parsed.push(breaking_dict(row));
+    });
+
+    var xm = [{movies:[{_attr:{type:'Marvel movies'}}]}];
+    parsed.forEach(row => {
+
+        xm[0].movies.push({movie:row});
+    });
+    final_xml = xml(xm,true);
+    FileSystem.writeFileSync("./destination.xml",final_xml);
+    console.log('xlsx to xml:');
+    console.log(final_xml);
+});
