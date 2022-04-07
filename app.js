@@ -32,6 +32,7 @@ function breaking_dict(dict){
 async function read_xlsx(filename){
     workbook = new ExcelJS.Workbook();
     const result = await workbook.xlsx.readFile(filename);
+    
     return result;
 }
 
@@ -43,10 +44,19 @@ CSVToJSON().fromFile("./source.csv").then(source => {
         mod_file(line);
     });
     console.log('Modified file: \n',source);
+    const js =  JSON.stringify({data:source},null,1);
+    console.log('json',js);
+    // console.log(source);
+    FileSystem.writeFile("file.json",js,'utf8',(error)=>{
+        if (error){
+            throw error;
+        }
+    });
 
     const csv = JSONToCSV(source);
     console.log(csv);
     FileSystem.writeFileSync("./destination.csv",csv);
+
 
 });
 
@@ -59,7 +69,7 @@ const resu =  book.then(function(res){
     let data = [];
     const rows = res._worksheets[1]._rows;
     rows[0]._cells.forEach(cell => {
-        names.push(cell._value.model.value);
+        names.push(cell._value.model.value.split(" ").join(""));
     });
     rows.slice(1,rows.lenght).forEach(row => {
         let r = {};
